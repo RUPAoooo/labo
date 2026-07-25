@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ja" class="lang-ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>バーチャル化学実験室 | Virtual Chemistry Lab</title>
+<meta name="description" content="日本語・英語で利用できる教育用化学シミュレーター。元素や試薬を組み合わせ、化学反応・pH・温度・気体・沈殿などの変化を観察できます。An interactive bilingual chemistry simulator.">
+<meta property="og:title" content="バーチャル化学実験室 | Virtual Chemistry Lab">
+<meta property="og:description" content="元素や試薬を組み合わせ、化学反応と数値の変化を観察するインタラクティブ・シミュレーター。">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+(function(){ try{ var stored=localStorage.getItem('vclSiteLang'); var l=stored||((navigator.language||'ja').toLowerCase().indexOf('ja')===0?'ja':'en'); document.documentElement.className='lang-'+l; document.documentElement.lang=l; }catch(e){ document.documentElement.className='lang-ja'; } })();
+</script>
+<style>
+  :root{
+    --accent:#3fd9c8;--accent2:#5aa2ff;--purple:#a879ff;--magenta:#e06bff;
+    --lime:#b6e84a;--amber:#ffc24d;--danger:#ff5b52;
+    --bg0:#030a14;--bg1:#071019;
+    --panel:rgba(255,255,255,.035);--panel2:rgba(14,22,32,.72);--line:rgba(124,191,226,.15);
+    --text:#e8eef3;--muted:#93a2b2;--mono:'IBM Plex Mono',ui-monospace,monospace;
+    --card-bg:linear-gradient(180deg,rgba(14,26,42,.55),rgba(7,14,24,.62));
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--text);line-height:1.7;min-height:100vh;
+    background:radial-gradient(120% 80% at 85% 0%,rgba(20,44,72,.22),transparent 55%),var(--bg0);position:relative;overflow-x:hidden}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{color:#6fe8db}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:8px}
+  ::-webkit-scrollbar-track{background:transparent}
+  img{display:block;max-width:100%}
+
+  html.lang-en .i18n-ja{display:none}
+  html.lang-ja .i18n-en{display:none}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+
+  /* ===== fixed header ===== */
+  .hdr{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;
+    padding:16px clamp(16px,4vw,44px);transition:background .3s,border-color .3s,backdrop-filter .3s;
+    border-bottom:1px solid transparent}
+  .hdr.scrolled{background:rgba(7,12,20,.82);backdrop-filter:blur(14px);border-bottom-color:var(--line)}
+  .hdr .brand{display:flex;align-items:center;gap:12px}
+  .flask-mk{width:34px;height:34px;flex:none}
+  .brand .btxt{line-height:1.15}
+  .brand .b1{font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:#dbe6f0;font-weight:600}
+  .brand .b2{font-family:var(--mono);font-size:12px;letter-spacing:.16em;
+    background:linear-gradient(90deg,#eafcff,var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:600}
+  .nav{display:flex;align-items:center;gap:4px}
+  .nav a{font-size:13.5px;color:var(--muted);padding:9px 13px;border-radius:9px;transition:.15s;white-space:nowrap}
+  .nav a:hover{color:#eafcff;background:rgba(255,255,255,.05)}
+  .lang-mini{display:flex;gap:2px;margin-left:8px;border:1px solid var(--line);border-radius:9px;padding:3px;background:rgba(255,255,255,.04)}
+  .lang-mini button{font-family:var(--mono);font-size:11.5px;color:var(--muted);background:transparent;border:none;border-radius:6px;padding:6px 11px;cursor:pointer;transition:.15s}
+  html.lang-ja .lang-mini .lm-ja,html.lang-en .lang-mini .lm-en{background:var(--accent);color:#04110d;font-weight:600}
+  .navtoggle{display:none;background:transparent;border:1px solid var(--line);border-radius:9px;color:var(--text);padding:8px 11px;cursor:pointer;font-size:16px}
+  @media(max-width:940px){
+    .nav .np{display:none}
+    .navtoggle{display:block}
+    .nav.open .np{display:block;position:absolute;top:64px;right:16px;background:rgba(9,14,22,.97);border:1px solid var(--line);border-radius:8px;padding:9px 16px;backdrop-filter:blur(14px)}
+    .nav.open{position:static}
+  }
+
+  /* ===== hero ===== */
+  .hero{position:relative;min-height:100vh;display:flex;align-items:center;padding:120px clamp(16px,4vw,44px) 70px;overflow:hidden;
+    background:radial-gradient(130% 120% at 8% 40%,rgba(20,44,72,.18),transparent 46%)}
+  .hero-inner{position:relative;z-index:3;width:100%;max-width:1240px;margin:0 auto;display:block}
+  .hero-copy{position:relative;z-index:4;max-width:620px}
+  .htitle{font-weight:700;letter-spacing:-.01em;line-height:.98;font-size:clamp(46px,8.5vw,104px);text-shadow:0 6px 40px rgba(0,0,0,.6)}
+  .htitle .c2{background:linear-gradient(92deg,#eafcff 6%,var(--accent) 48%,var(--accent2) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 26px rgba(63,217,200,.35))}
+  .hsub{display:flex;align-items:center;gap:16px;margin-top:18px}
+  .hsub .jp{font-size:clamp(17px,2.4vw,24px);font-weight:500;color:#dbe6f0;letter-spacing:.04em}
+  .hsub .rule{height:1px;flex:1;max-width:120px;background:linear-gradient(90deg,var(--accent),transparent)}
+  .hdesc{margin-top:20px;font-size:clamp(14px,1.5vw,16.5px);color:#c2d0dd;font-weight:300;line-height:1.85;max-width:44ch;white-space:pre-line;text-shadow:0 2px 14px rgba(0,0,0,.5)}
+
+  /* language cards */
+  .langcards{display:flex;gap:14px;margin-top:30px;flex-wrap:wrap}
+  .langcard{flex:1;min-width:190px;border:1px solid var(--line);border-radius:15px;background:rgba(9,15,23,.55);backdrop-filter:blur(8px);
+    padding:18px 20px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:15px;color:inherit;
+    transition:border-color .2s,background .2s,box-shadow .2s}
+  .langcard:hover{border-color:rgba(63,217,200,.55);background:rgba(15,24,36,.7)}
+  .langcard.active{border-color:var(--accent);background:rgba(20,42,50,.7);box-shadow:0 0 0 1px var(--accent) inset,0 0 34px rgba(63,217,200,.22)}
+  .langcard .badge{width:46px;height:46px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;
+    border:1px solid var(--line);background:rgba(255,255,255,.04);overflow:hidden}
+  .flag-jp{width:100%;height:100%;background:#fff;position:relative}
+  .flag-jp::after{content:"";position:absolute;inset:0;margin:auto;width:20px;height:20px;border-radius:50%;background:#bc002d}
+  .langcard .big{display:block;font-size:18px;font-weight:600;line-height:1.2}
+  .langcard .small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+  .langcard .chk{margin-left:auto;color:var(--accent);opacity:0;transition:.2s;font-size:17px}
+  .langcard.active .chk{opacity:1}
+
+  /* consent + start */
+  .consent{display:flex;align-items:flex-start;gap:12px;margin-top:22px;cursor:pointer;max-width:520px}
+  .consent input{position:absolute;opacity:0;width:0;height:0}
+  .consent .box{width:22px;height:22px;flex:none;border:1.5px solid rgba(255,255,255,.4);border-radius:6px;background:rgba(9,15,23,.6);
+    display:flex;align-items:center;justify-content:center;transition:.15s;margin-top:1px}
+  .consent .box svg{width:13px;height:13px;opacity:0;transition:.15s}
+  .consent input:checked + .box{background:var(--accent);border-color:var(--accent);box-shadow:0 0 16px rgba(63,217,200,.4)}
+  .consent input:checked + .box svg{opacity:1}
+  .consent input:focus-visible + .box{outline:2px solid var(--accent2);outline-offset:2px}
+  .consent .ctxt{font-size:13.5px;color:#c9d5e0}
+
+  .startbtn{margin-top:20px;width:100%;max-width:440px;display:flex;align-items:center;gap:12px;justify-content:flex-start;
+    font-size:16.5px;font-weight:600;border:none;border-radius:13px;padding:17px 24px;cursor:pointer;
+    background:linear-gradient(92deg,var(--accent),var(--accent2));color:#03121b;transition:filter .18s,box-shadow .18s,opacity .18s;
+    box-shadow:0 12px 34px rgba(63,217,200,.28)}
+  .startbtn .ico{width:22px;height:22px;flex:none}
+  .startbtn .ar{margin-left:auto;font-size:20px}
+  .startbtn:hover:not([disabled]){filter:brightness(1.07);box-shadow:0 14px 44px rgba(63,217,200,.42)}
+  .startbtn:active:not([disabled]){box-shadow:0 0 0 3px rgba(255,255,255,.35),0 0 40px rgba(63,217,200,.6)}
+  .startbtn[disabled]{background:rgba(20,30,42,.75);color:var(--muted);box-shadow:none;cursor:not-allowed;border:1px solid var(--line)}
+  .startnote{font-size:12px;color:var(--muted);margin-top:9px}
+
+  /* hero background image layer: photo dissolved into the hero on all 4 edges */
+  .hero-bg{position:absolute;inset:0;z-index:1;overflow:hidden;pointer-events:none}
+  @media(max-width:900px){.hero-bg{display:none}}
+  .benchwrap{position:absolute;top:50%;right:-3%;width:min(72%,1040px);transform:translateY(-48%)}
+  .bench,.benchtint{-webkit-mask-image:linear-gradient(to right,transparent 0%,rgba(0,0,0,.4) 8%,#000 22%,#000 84%,transparent 100%),linear-gradient(to bottom,transparent 0%,#000 10%,#000 82%,transparent 100%);
+    -webkit-mask-composite:source-in;
+    mask-image:linear-gradient(to right,transparent 0%,rgba(0,0,0,.4) 8%,#000 22%,#000 84%,transparent 100%),linear-gradient(to bottom,transparent 0%,#000 10%,#000 82%,transparent 100%);
+    mask-composite:intersect}
+  .bench{width:100%;height:auto;display:block;filter:saturate(1.05) contrast(1.03) brightness(.95)}
+  /* navy tint unifies the photo's blacks with the page bg + darkens left for text */
+  .benchtint{position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(90deg,rgba(3,10,20,.95) 2%,rgba(3,10,20,.6) 22%,rgba(3,10,20,.14) 44%,transparent 60%),radial-gradient(90% 90% at 60% 50%,rgba(12,26,46,.32),transparent 70%)}
+  /* element tiles overlaid onto the baked cyan frames (top-right of bench) */
+  .etiles{position:absolute;z-index:3;top:16.5%;left:73.6%;width:22%;display:grid;grid-template-columns:1fr 1fr;gap:4.4%;pointer-events:none}
+  .etile{aspect-ratio:1/1;border-radius:7px;padding:9% 10%;display:flex;flex-direction:column;justify-content:center}
+  .etile .top{display:flex;justify-content:space-between;font-family:var(--mono);font-size:clamp(7px,.72vw,10px);color:var(--accent);line-height:1}
+  .etile .sym{font-size:clamp(16px,2vw,28px);font-weight:700;line-height:1;margin:6% 0 3%;color:#eafcff}
+  .etile .nm{font-size:clamp(6px,.66vw,9px);color:#8fb2c8;line-height:1}
+  .etile .mass{display:none}
+  .eq{position:absolute;z-index:3;font-family:var(--mono);color:rgba(190,212,236,.34);white-space:nowrap;pointer-events:none;font-size:clamp(11px,1.15vw,16px);font-style:italic}
+  .eq.e1{top:3%;left:24%}
+  .eq.e2{bottom:8%;right:5%}
+
+  .scrollcue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);z-index:5;display:flex;flex-direction:column;align-items:center;gap:9px;
+    font-family:var(--mono);font-size:11px;letter-spacing:.28em;color:var(--muted);cursor:pointer}
+  .scrollcue .line{width:1px;height:34px;background:linear-gradient(180deg,var(--accent),transparent);position:relative;overflow:hidden}
+  .scrollcue .line::after{content:"";position:absolute;top:-34px;left:0;width:1px;height:16px;background:var(--accent);animation:scrolldot 2s ease-in-out infinite}
+  @keyframes scrolldot{0%{top:-16px}100%{top:34px}}
+
+  /* ===== sections ===== */
+  section.blk{position:relative;z-index:2;padding:64px 0}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.28em;color:var(--accent);text-align:center;margin-bottom:12px}
+  .sectitle{text-align:center;font-size:clamp(22px,3vw,30px);font-weight:600;margin-bottom:36px}
+
+  .feat{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  @media(max-width:900px){.feat{grid-template-columns:1fr 1fr}}
+  @media(max-width:540px){.feat{grid-template-columns:1fr}}
+  .fcard{border:1px solid var(--line);border-radius:16px;background:var(--card-bg);
+    padding:14px 14px 12px;transition:border-color .22s,box-shadow .22s;display:flex;flex-direction:column;gap:9px}
+  .fcard .fhead{display:flex;align-items:center;gap:11px}
+  .fcard:hover{border-color:rgba(63,217,200,.45);background:linear-gradient(180deg,rgba(18,32,50,.7),rgba(9,17,28,.7));box-shadow:0 0 26px rgba(0,170,255,.09)}
+  .fcard .ic{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+    border:1px solid rgba(63,217,200,.32);background:rgba(63,217,200,.09);color:var(--accent)}
+  .fcard .ic svg{width:22px;height:22px}
+  .fcard h3{font-size:15.5px;font-weight:600;line-height:1.2;margin:0}
+  .fcard h3 .en{display:block;font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.04em;margin-top:1px;font-weight:400;line-height:1.25}
+  .fcard .fimg{position:relative;border-radius:11px;overflow:hidden;background:#060f1c;min-height:112px}
+  .fcard .fimg img{width:100%;height:100%;object-fit:cover;display:block;transition:filter .22s}
+  .fcard .fimg::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(180deg,transparent 56%,rgba(7,14,24,.55) 84%,rgba(9,17,28,.92) 100%)}
+  .fcard:hover .fimg img{filter:brightness(1.07) saturate(1.06)}
+  .fcard p{font-size:12.5px;color:var(--muted);line-height:1.55;margin:0}
+  .fcard .more{display:flex;justify-content:flex-end;color:var(--accent);margin-top:auto;padding-top:2px}
+  .fcard .more svg{width:26px;height:26px;padding:5px;border:1px solid rgba(63,217,200,.3);border-radius:50%;transition:.18s}
+  .fcard:hover .more svg{background:rgba(63,217,200,.12)}
+
+  /* gallery */
+  .gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media(max-width:820px){
+    .gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;padding-bottom:10px;-webkit-overflow-scrolling:touch}
+    .gcard{flex:0 0 74%;scroll-snap-align:center}
+  }
+  .gcard{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card-bg);transition:border-color .22s,box-shadow .22s;display:flex;flex-direction:column;padding:8px}
+  .gcard:hover{border-color:rgba(63,217,200,.45);box-shadow:0 0 24px rgba(0,170,255,.1)}
+  .ghead{padding:5px 4px 9px;text-align:center}
+  .ghead h4{font-size:14px;font-weight:600}
+  .ghead .en{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:.03em}
+  .gvis{position:relative;aspect-ratio:4/3;overflow:hidden;background:#060f1c;border-radius:10px}
+  .gvis img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
+  .gvis::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:10px;
+    background:linear-gradient(180deg,transparent 60%,rgba(7,14,24,.5) 100%)}
+  .gcard:hover .gvis img{transform:scale(1.05)}
+  .gfoot{display:flex;align-items:center;gap:8px;padding:10px 6px 4px}
+  .gfoot p{font-size:11px;color:var(--muted);line-height:1.5;flex:1}
+  .gfoot .ar{width:24px;height:24px;flex:none;display:flex;align-items:center;justify-content:center;color:var(--accent);border:1px solid rgba(63,217,200,.3);border-radius:50%;transition:.18s}
+  .gcard:hover .gfoot .ar{background:rgba(63,217,200,.12)}
+
+  /* safety */
+  .safety{position:relative;border:1px solid rgba(122,140,255,.24);border-radius:20px;overflow:hidden;max-width:1120px;margin:0 auto;
+    background:linear-gradient(135deg,rgba(52,44,104,.3),rgba(18,34,60,.32));padding:30px clamp(20px,3.5vw,40px)}
+  .safety::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(60% 80% at 12% 20%,rgba(168,121,255,.18),transparent 55%),radial-gradient(60% 80% at 90% 90%,rgba(90,162,255,.15),transparent 55%)}
+  .safety-head{position:relative;display:flex;align-items:center;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+  .shield{width:52px;height:52px;flex:none;color:var(--purple);filter:drop-shadow(0 0 16px rgba(168,121,255,.45))}
+  .safety-head h2{font-size:clamp(19px,2.6vw,24px);font-weight:600}
+  .safety-head .en{display:block;font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.16em;margin-top:3px}
+  .sgrid{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+  @media(max-width:820px){.sgrid{grid-template-columns:1fr 1fr}}
+  @media(max-width:480px){.sgrid{grid-template-columns:1fr}}
+  .sitem .sic{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:9px;
+    border:1px solid rgba(168,121,255,.35);background:rgba(168,121,255,.1);color:var(--purple)}
+  .sitem .sic svg{width:19px;height:19px}
+  .sitem h4{font-size:14px;font-weight:600;margin-bottom:5px}
+  .sitem p{font-size:12px;color:#b8c4d2;line-height:1.6}
+  .safety-cta{position:relative;display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-top:18px;border-top:1px solid rgba(255,255,255,.09)}
+  .safety-cta .txt{font-size:12.5px;color:#b8c4d2}
+  .ghostbtn{margin-left:auto;display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:#eafcff;
+    border:1px solid rgba(255,255,255,.24);border-radius:11px;padding:12px 22px;transition:.18s;background:rgba(255,255,255,.04)}
+  .ghostbtn:hover{border-color:var(--purple);color:#fff;box-shadow:0 0 26px rgba(168,121,255,.3)}
+  @media(max-width:520px){.ghostbtn{margin-left:0;width:100%;justify-content:center}}
+
+  /* disclaimer full text */
+  .disc{border:1px solid rgba(255,91,82,.28);border-radius:18px;background:linear-gradient(180deg,rgba(255,91,82,.05),var(--panel));padding:30px clamp(20px,3vw,30px)}
+  .disc h2{font-size:19px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:11px}
+  .disc h2 .warn{color:var(--danger)}
+  .disc .body{max-height:340px;overflow:auto;padding:18px 20px;border:1px solid var(--line);border-radius:12px;background:rgba(6,9,13,.5);font-size:13.5px;color:#cdd5dd;line-height:1.85}
+  .disc .body p{margin-bottom:12px}
+  .disc .body p:last-child{margin-bottom:0}
+
+  /* env */
+  .envbox{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:26px}
+  .envbox h3{font-size:14px;font-weight:600;color:var(--accent);margin-bottom:14px;font-family:var(--mono);letter-spacing:.06em}
+  .envlist{display:flex;flex-direction:column;gap:10px}
+  .envlist .row{display:flex;gap:12px;font-size:14px;align-items:flex-start}
+  .envlist .row .dot{color:var(--accent);flex:none;margin-top:1px}
+
+  /* footer */
+  footer{position:relative;z-index:2;border-top:1px solid var(--line);margin-top:20px;padding:52px 0 44px}
+  .fgrid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:32px;margin-bottom:36px}
+  @media(max-width:720px){.fgrid{grid-template-columns:1fr;gap:26px}}
+  .fbrand .flask-mk{margin-bottom:12px}
+  .fbrand .fname{font-family:var(--mono);font-size:13px;letter-spacing:.14em;color:#dbe6f0;font-weight:600;margin-bottom:10px}
+  .fbrand p{font-size:12.5px;color:var(--muted);line-height:1.8;max-width:34ch}
+  .fcol h5{font-size:12px;font-family:var(--mono);letter-spacing:.14em;color:var(--muted);margin-bottom:14px}
+  .fcol a{display:block;font-size:13.5px;color:#c9d5e0;padding:5px 0;transition:.15s}
+  .fcol a:hover{color:var(--accent)}
+  .fbot{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-top:24px;border-top:1px solid var(--line)}
+  .fbot .cr{font-size:12px;color:var(--muted)}
+  .lang-mini.footlm{margin:0}
+
+  /* ===== clickable cards ===== */
+  .fcard.clickable,.gcard.clickable{cursor:pointer}
+  .fcard.clickable:focus-visible,.gcard.clickable:focus-visible{outline:2px solid var(--accent2);outline-offset:3px}
+  .fcard.clickable .more svg{transition:transform .18s,background .18s}
+  .fcard.clickable:hover .more svg{transform:translateX(4px)}
+  .gcard.clickable .gfoot .ar{transition:transform .18s,background .18s}
+  .gcard.clickable:hover .gfoot .ar{transform:translateX(4px)}
+  @keyframes cardpulse{0%{box-shadow:0 0 0 0 rgba(63,217,200,0)}28%{box-shadow:0 0 0 2px rgba(63,217,200,.55),0 0 44px rgba(63,217,200,.26)}100%{box-shadow:0 0 0 0 rgba(63,217,200,0)}}
+  .pulse-target{animation:cardpulse 1.7s ease-out}
+
+  /* ===== demo modal ===== */
+  .dmodal{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:26px;
+    background:rgba(2,7,14,.74);backdrop-filter:blur(7px)}
+  .dmodal.open{display:flex}
+  .dmodal .panel{position:relative;width:min(72vw,980px);max-height:90vh;display:flex;flex-direction:column;
+    border:1px solid var(--line);border-radius:16px;overflow:hidden;
+    background:linear-gradient(180deg,rgba(12,22,36,.97),rgba(7,13,22,.98));box-shadow:0 30px 90px rgba(0,0,0,.62)}
+  @media(max-width:1024px){.dmodal .panel{width:90vw}}
+  @media(max-width:600px){.dmodal{padding:0}.dmodal .panel{width:100vw;height:100dvh;max-height:100dvh;border-radius:0}}
+  .dm-head{display:flex;align-items:flex-start;gap:14px;padding:17px 20px;border-bottom:1px solid var(--line);flex:none}
+  .dm-head .cat{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--accent);text-transform:uppercase}
+  .dm-head h3{font-size:18px;font-weight:600;margin-top:3px;line-height:1.25}
+  .dm-head h3 .sub{display:block;font-family:var(--mono);font-size:11.5px;color:var(--muted);font-weight:400;margin-top:2px;letter-spacing:.01em}
+  .dm-x{margin-left:auto;flex:none;width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.03);
+    color:var(--text);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s}
+  .dm-x:hover{border-color:var(--accent);color:#eafcff}
+  .dm-body{overflow:auto;padding:20px;flex:1}
+  .dm-foot{display:flex;gap:10px;padding:14px 20px;border-top:1px solid var(--line);flex-wrap:wrap;flex:none}
+  @media(max-width:600px){.dm-foot .dbtn{flex:1 1 45%}}
+
+  .dbtn{font-size:13.5px;font-weight:600;border-radius:10px;padding:11px 18px;cursor:pointer;border:1px solid var(--line);
+    background:rgba(255,255,255,.04);color:#eafcff;transition:filter .15s,border-color .15s,background .15s;font-family:inherit}
+  .dbtn:hover{border-color:var(--accent)}
+  .dbtn.primary{background:linear-gradient(92deg,var(--accent),var(--accent2));color:#03121b;border:none}
+  .dbtn.primary:hover{filter:brightness(1.08)}
+  .dbtn:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+
+  /* demo stage */
+  .stage{display:grid;grid-template-columns:minmax(0,270px) 1fr;gap:18px;align-items:start}
+  @media(max-width:640px){.stage{grid-template-columns:1fr}.stage-vis{max-width:270px;margin:0 auto}}
+  .stage-vis{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#060d18}
+  .stage-vis canvas{width:100%;display:block}
+  .stage-flag{position:absolute;top:10px;left:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+    padding:5px 10px;border-radius:7px;background:rgba(63,217,200,.14);color:var(--accent);border:1px solid rgba(63,217,200,.4);
+    opacity:0;transform:translateY(-4px);transition:.3s}
+  .stage-flag.show{opacity:1;transform:translateY(0)}
+  .stage-info{display:flex;flex-direction:column;gap:11px;font-size:12.5px}
+  .meter{display:flex;flex-direction:column;gap:5px}
+  .meter .mlabel{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .meter .mlabel b{color:#eafcff;font-weight:600}
+  .meter .track{height:8px;border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden}
+  .meter .fill{height:100%;border-radius:5px;width:0;transition:width .1s linear}
+  .spark{width:100%;height:40px;border:1px solid var(--line);border-radius:9px;background:rgba(255,255,255,.02);display:block}
+  .info-block h5{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--muted);margin-bottom:6px;text-transform:uppercase}
+  .info-block .eqn{font-family:var(--mono);font-size:13px;color:#cfe8ff;background:rgba(90,162,255,.08);border:1px solid rgba(90,162,255,.2);
+    border-radius:8px;padding:9px 12px;line-height:1.5}
+  .obs-list{list-style:none;display:flex;flex-direction:column;gap:6px}
+  .obs-list li{display:flex;gap:9px;font-size:12.5px;color:#c9d5e0;line-height:1.5}
+  .obs-list li::before{content:"▹";color:var(--accent);flex:none}
+  .note-txt{font-size:12px;color:#a9b7c6;line-height:1.65}
+  .dm-desc{font-size:13px;color:#c9d5e0;line-height:1.6;margin-bottom:12px}
+
+  .badge-danger{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:7px;white-space:nowrap}
+  .lv1{color:var(--accent);border:1px solid rgba(63,217,200,.4);background:rgba(63,217,200,.09)}
+  .lv2{color:#8fe36b;border:1px solid rgba(143,227,107,.4);background:rgba(143,227,107,.09)}
+  .lv3{color:var(--amber);border:1px solid rgba(255,194,77,.42);background:rgba(255,194,77,.1)}
+  .lv4{color:#ff9a4d;border:1px solid rgba(255,154,77,.46);background:rgba(255,154,77,.12)}
+  .lv5{color:var(--danger);border:1px solid rgba(255,91,82,.5);background:rgba(255,91,82,.12)}
+  .warn-label{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:7px 12px;border-radius:8px;
+    color:#ffb27a;border:1px solid rgba(255,154,77,.4);background:rgba(255,120,50,.1)}
+
+  /* demo & mission list grids */
+  .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:640px){.dgrid{grid-template-columns:1fr}}
+  .dtile{border:1px solid var(--line);border-radius:13px;background:var(--card-bg);padding:15px;cursor:pointer;
+    display:flex;flex-direction:column;gap:9px;transition:border-color .18s,box-shadow .18s;text-align:left;color:inherit;font-family:inherit}
+  .dtile:hover{border-color:rgba(63,217,200,.45);box-shadow:0 0 22px rgba(0,170,255,.08)}
+  .dtile:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+  .dtile .thumb{aspect-ratio:16/9;border-radius:9px;overflow:hidden;position:relative;background:#060d18}
+  .dtile .thumb canvas{width:100%;height:100%;display:block}
+  .dtile .trow{display:flex;align-items:center;gap:8px}
+  .dtile h4{font-size:14.5px;font-weight:600;line-height:1.25;flex:1}
+  .dtile .tdesc{font-size:12px;color:var(--muted);line-height:1.55}
+  .dtile .tmeta{font-size:11px;color:#8fa0b0;font-family:var(--mono);line-height:1.5}
+  .dtile .seebtn{margin-top:2px;align-self:flex-start;font-size:12px;font-weight:600;color:var(--accent);
+    border:1px solid rgba(63,217,200,.35);border-radius:8px;padding:7px 13px;background:rgba(63,217,200,.06)}
+  .diff-group{margin-bottom:22px}
+  .diff-group:last-child{margin-bottom:0}
+  .diff-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .diff-head .dname{font-size:14px;font-weight:600}
+  .diff-head .drule{flex:1;height:1px;background:var(--line)}
+  .consent-note{margin-top:20px;padding:14px 16px;border:1px solid rgba(255,194,77,.28);border-radius:11px;
+    background:rgba(255,194,77,.06);font-size:12.5px;color:#e6d3a8;line-height:1.6}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;scroll-behavior:auto !important}
+    .scrollcue .line::after{display:none}
+    .stage-flag{transition:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="hdr" id="hdr">
+  <div class="brand">
+    <svg class="flask-mk" viewBox="0 0 32 32" fill="none"><path d="M13 4h6M14 4v8l-7 12a3 3 0 0 0 2.6 4.5h12.8A3 3 0 0 0 25 24l-7-12V4" stroke="#3fd9c8" stroke-width="1.6" stroke-linejoin="round"/><path d="M10.5 20h11" stroke="#5aa2ff" stroke-width="1.6"/><circle cx="14.5" cy="24" r="1.3" fill="#3fd9c8"/><circle cx="18.5" cy="26" r="1" fill="#5aa2ff"/></svg>
+    <div class="btxt"><div class="b1">VIRTUAL</div><div class="b2">CHEMISTRY LAB</div></div>
+  </div>
+  <nav class="nav" id="nav">
+    <a class="np" href="#features"><span class="i18n-ja">特徴</span><span class="i18n-en">Features</span></a>
+    <a class="np" href="#gallery"><span class="i18n-ja">反応ギャラリー</span><span class="i18n-en">Gallery</span></a>
+    <a class="np navpage" data-page="how-to" target="_blank" rel="noopener"><span class="i18n-ja">使い方</span><span class="i18n-en">How to Use</span></a>
+    <a class="np navpage" data-page="faq" target="_blank" rel="noopener"><span class="i18n-ja">Q&amp;A</span><span class="i18n-en">FAQ</span></a>
+    <a class="np navpage" data-page="reaction-list" target="_blank" rel="noopener"><span class="i18n-ja">反応図鑑</span><span class="i18n-en">Reaction Index</span></a>
+    <a class="np" href="#safety"><span class="i18n-ja">安全について</span><span class="i18n-en">Safety</span></a>
+    <div class="lang-mini" role="group" aria-label="Language">
+      <button class="lm-ja" onclick="setLang('ja')">日本語</button>
+      <button class="lm-en" onclick="setLang('en')">EN</button>
+    </div>
+    <button class="navtoggle" aria-label="menu" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
+  </nav>
+</header>
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+  <div class="hero-bg">
+    <div class="benchwrap">
+      <img class="bench" src="assets/hero-bench.png" alt="">
+      <div class="benchtint"></div>
+      <div class="etiles">
+        <div class="etile"><div class="top"><span>1</span><span>1.008</span></div><div class="sym">H</div><div class="nm i18n-ja">水素</div><div class="nm i18n-en">Hydrogen</div></div>
+        <div class="etile"><div class="top"><span>8</span><span>15.999</span></div><div class="sym">O</div><div class="nm i18n-ja">酸素</div><div class="nm i18n-en">Oxygen</div></div>
+        <div class="etile"><div class="top"><span>11</span><span>22.990</span></div><div class="sym">Na</div><div class="nm i18n-ja">ナトリウム</div><div class="nm i18n-en">Sodium</div></div>
+        <div class="etile"><div class="top"><span>17</span><span>35.453</span></div><div class="sym">Cl</div><div class="nm i18n-ja">塩素</div><div class="nm i18n-en">Chlorine</div></div>
+      </div>
+      <div class="eq e1">2H₂ + O₂ → 2H₂O</div>
+      <div class="eq e2">Ag⁺ + Cl⁻ → AgCl(s)</div>
+    </div>
+  </div>
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <h1 class="htitle">VIRTUAL<br><span class="c2">CHEMISTRY</span><br>LAB</h1>
+      <div class="hsub"><span class="jp">バーチャル化学実験室</span><span class="rule"></span></div>
+      <div class="hdesc i18n-ja">元素や試薬を組み合わせ、
+色・気体・沈殿・炎・温度・pH の変化を
+観察するインタラクティブ・シミュレーター。</div>
+      <div class="hdesc i18n-en">Combine elements and reagents,
+observe chemical reactions,
+and explore measurable changes in real time.</div>
+
+      <div class="langcards">
+        <button class="langcard" id="card-ja" onclick="setLang('ja')" aria-pressed="true" aria-label="日本語を選択">
+          <span class="badge"><span class="flag-jp"></span></span>
+          <span><span class="big">日本語</span><span class="small">Japanese</span></span>
+          <span class="chk">✓</span>
+        </button>
+        <button class="langcard" id="card-en" onclick="setLang('en')" aria-pressed="false" aria-label="Select English">
+          <span class="badge"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#5aa2ff" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg></span>
+          <span><span class="big">English</span><span class="small">English</span></span>
+          <span class="chk">✓</span>
+        </button>
+      </div>
+
+      <label class="consent">
+        <input type="checkbox" id="agchk" onchange="syncAgree()">
+        <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="#03121b" stroke-width="3"><path d="M5 12l4 4L19 6"/></svg></span>
+        <span class="ctxt"><span class="i18n-ja">注意事項・免責事項を読み、内容を理解しました。</span><span class="i18n-en">I have read and understood the safety notice and disclaimer.</span></span>
+      </label>
+
+      <button class="startbtn" id="startbtn" disabled aria-disabled="true" onclick="enterLab(currentLang())">
+        <svg class="ico" viewBox="0 0 32 32" fill="none"><path d="M13 4h6M14 4v8l-7 12a3 3 0 0 0 2.6 4.5h12.8A3 3 0 0 0 25 24l-7-12V4" stroke="#03121b" stroke-width="1.8" stroke-linejoin="round"/><path d="M10.5 20h11" stroke="#03121b" stroke-width="1.8"/></svg>
+        <span class="i18n-ja">実験室を起動する</span><span class="i18n-en">Enter the Lab</span>
+        <span class="ar">→</span>
+      </button>
+      <div class="startnote"><span class="i18n-ja">チェックすると起動できます。選択中の言語版が開きます。</span><span class="i18n-en">Check the box to enable. Opens the currently selected language.</span></div>
+    </div>
+  </div>
+
+  <div class="scrollcue" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">
+    <span class="i18n-ja">実験室を探索する</span><span class="i18n-en">EXPLORE THE LAB</span>
+    <span class="line"></span>
+  </div>
+</div>
+
+<!-- ===== FEATURES ===== -->
+<section class="blk" id="features">
+  <div class="wrap">
+    <div class="eyebrow">WHAT YOU CAN DO</div>
+    <div class="sectitle"><span class="i18n-ja">このシミュレーターでできること</span><span class="i18n-en">What you can do here</span></div>
+    <div class="feat">
+      <div class="fcard clickable" role="button" tabindex="0" data-feature="observe">
+        <div class="fhead"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <h3><span class="i18n-ja">観察する</span><span class="i18n-en">Observe</span><span class="en">Observe Reactions</span></h3></div>
+        <div class="fimg"><img src="assets/feat-1.png" alt="" loading="lazy"></div>
+        <p><span class="i18n-ja">色の変化、沈殿、気体の発生など、さまざまな反応の現象を観察しよう。</span><span class="i18n-en">Observe color changes, precipitates, gas evolution, and many other phenomena.</span></p>
+        <div class="more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      </div>
+      <div class="fcard clickable" role="button" tabindex="0" data-feature="measure">
+        <div class="fhead"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 4h4v9a4 4 0 1 1-4 0V4Z"/><path d="M10 9h4"/><circle cx="12" cy="17" r="1.4" fill="currentColor"/></svg></div>
+        <h3><span class="i18n-ja">測定する</span><span class="i18n-en">Measure</span><span class="en">Measure pH / Temperature</span></h3></div>
+        <div class="fimg"><img src="assets/feat-2.png" alt="" loading="lazy"></div>
+        <p><span class="i18n-ja">pHメーターや温度計などを使って、反応の変化を数値で確認しよう。</span><span class="i18n-en">Use pH meters and thermometers to track reaction changes numerically.</span></p>
+        <div class="more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      </div>
+      <div class="fcard clickable" role="button" tabindex="0" data-feature="missions">
+        <div class="fhead"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg></div>
+        <h3><span class="i18n-ja">ミッションモード</span><span class="i18n-en">Missions</span><span class="en">Mission Mode</span></h3></div>
+        <div class="fimg"><img src="assets/feat-3.png" alt="" loading="lazy"></div>
+        <p><span class="i18n-ja">課題をクリアして、新しい実験やアイテムをアンロックしよう。</span><span class="i18n-en">Clear tasks to unlock new experiments and items.</span></p>
+        <div class="more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      </div>
+      <div class="fcard clickable" role="button" tabindex="0" data-feature="demos">
+        <div class="fhead"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 5v14l11-7L8 5Z"/></svg></div>
+        <h3><span class="i18n-ja">反応デモ</span><span class="i18n-en">Demos</span><span class="en">Reaction Demos</span></h3></div>
+        <div class="fimg"><img src="assets/feat-4.png" alt="" loading="lazy"></div>
+        <p><span class="i18n-ja">有名な化学反応を手順付きで学べるデモンストレーション集。</span><span class="i18n-en">A collection of famous reactions you can learn step by step.</span></p>
+        <div class="more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== GALLERY ===== -->
+<section class="blk" id="gallery">
+  <div class="wrap">
+    <div class="eyebrow">CHEMICAL PHENOMENA</div>
+    <div class="sectitle"><span class="i18n-ja">さまざまな化学現象を体験する</span><span class="i18n-en">Explore Chemical Phenomena</span></div>
+    <div class="gallery">
+      <div class="gcard clickable" role="button" tabindex="0" data-phenom="color"><div class="ghead"><h4><span class="i18n-ja">色の変化</span><span class="i18n-en">Color Change</span></h4><div class="en">Color Change</div></div><div class="gvis"><img src="assets/gal-1.png" alt="" loading="lazy"></div><div class="gfoot"><p><span class="i18n-ja">溶液の色が劇的に変化します。</span><span class="i18n-en">Solutions shift color dramatically.</span></p><span class="ar">→</span></div></div>
+      <div class="gcard clickable" role="button" tabindex="0" data-phenom="gas"><div class="ghead"><h4><span class="i18n-ja">気体の発生</span><span class="i18n-en">Gas Evolution</span></h4><div class="en">Gas Evolution</div></div><div class="gvis"><img src="assets/gal-2.png" alt="" loading="lazy"></div><div class="gfoot"><p><span class="i18n-ja">気体が発生し、泡が立ち上ります。</span><span class="i18n-en">Gas forms and bubbles rise up.</span></p><span class="ar">→</span></div></div>
+      <div class="gcard clickable" role="button" tabindex="0" data-phenom="precip"><div class="ghead"><h4><span class="i18n-ja">沈殿の生成</span><span class="i18n-en">Precipitate</span></h4><div class="en">Precipitate Formation</div></div><div class="gvis"><img src="assets/gal-3.png" alt="" loading="lazy"></div><div class="gfoot"><p><span class="i18n-ja">新しい固体（沈殿）が現れます。</span><span class="i18n-en">A new solid precipitate appears.</span></p><span class="ar">→</span></div></div>
+      <div class="gcard clickable" role="button" tabindex="0" data-phenom="indicator"><div class="ghead"><h4><span class="i18n-ja">指示薬の変化</span><span class="i18n-en">Indicator Change</span></h4><div class="en">Indicator Change</div></div><div class="gvis"><img src="assets/gal-5.png" alt="" loading="lazy"></div><div class="gfoot"><p><span class="i18n-ja">指示薬がpHの変化を色で知らせます。</span><span class="i18n-en">Indicators reveal pH by color.</span></p><span class="ar">→</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SAFETY ===== -->
+<section class="blk" id="safety">
+  <div class="wrap">
+    <div class="safety">
+      <div class="safety-head">
+        <svg class="shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3l8 3v6c0 5-3.5 8.5-8 9.5C7.5 20.5 4 17 4 12V6l8-3Z"/><path d="M8.5 12l2.5 2.5L16 9.5" stroke-width="1.8"/></svg>
+        <div><h2><span class="i18n-ja">安全に関するご案内</span><span class="i18n-en">Safety &amp; Notice</span></h2><span class="en">SAFETY &amp; NOTICE</span></div>
+      </div>
+      <div class="sgrid">
+        <div class="sitem">
+          <div class="sic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="7" width="16" height="12" rx="2"/><path d="M9 7V5h6v2"/></svg></div>
+          <h4><span class="i18n-ja">仮想環境</span><span class="i18n-en">Virtual Environment</span></h4>
+          <p><span class="i18n-ja">本コンテンツは、画面上で化学反応を観察する教育用シミュレーターです。</span><span class="i18n-en">This is an educational simulator for observing chemical reactions on screen.</span></p>
+        </div>
+        <div class="sitem">
+          <div class="sic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4L2 9l10 5 10-5-10-5Z"/><path d="M6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/></svg></div>
+          <h4><span class="i18n-ja">教育目的</span><span class="i18n-en">Educational Purpose</span></h4>
+          <p><span class="i18n-ja">化学反応への理解と興味を深めることを目的としています。</span><span class="i18n-en">It aims to deepen understanding of and interest in chemical reactions.</span></p>
+        </div>
+        <div class="sitem">
+          <div class="sic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 5h14v14H5z"/><path d="M8 9h8M8 12h8M8 15h5"/></svg></div>
+          <h4><span class="i18n-ja">簡略化された表現</span><span class="i18n-en">Simplified Representation</span></h4>
+          <p><span class="i18n-ja">反応や数値には、学習用に調整・簡略化された表現が含まれます。</span><span class="i18n-en">Reactions and values include representations simplified and adjusted for learning.</span></p>
+        </div>
+        <div class="sitem">
+          <div class="sic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l9 16H3L12 3Z"/><path d="M12 10v4M12 16.5v.5"/></svg></div>
+          <h4><span class="i18n-ja">実験手順ではありません</span><span class="i18n-en">Not a Lab Procedure</span></h4>
+          <p><span class="i18n-ja">本コンテンツを、実際の実験手順書や安全手順書として使用しないでください。</span><span class="i18n-en">Do not use this content as an actual laboratory or safety procedure manual.</span></p>
+        </div>
+      </div>
+      <div class="safety-cta">
+        <span class="txt"><span class="i18n-ja">ご利用の前に、注意事項・免責事項を必ずご確認ください。</span><span class="i18n-en">Please review the full safety notice and disclaimer before use.</span></span>
+        <a class="ghostbtn" href="#disclaimer"><span class="i18n-ja">注意事項・免責事項を確認する</span><span class="i18n-en">View Safety Notice &amp; Disclaimer</span> →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== DISCLAIMER (full legal text) ===== -->
+<section class="blk" id="disclaimer">
+  <div class="wrap">
+    <div class="disc">
+      <h2><span class="warn">⚠</span><span class="i18n-ja">ご利用前の注意事項・免責事項</span><span class="i18n-en">Important Safety Notice and Disclaimer</span></h2>
+      <div class="body i18n-ja">
+        <p>本コンテンツは、化学反応への理解と興味を深めることを目的とした教育用シミュレーターです。</p>
+        <p>画面上に表示される反応、色、炎、煙、気体、沈殿、温度、pH、圧力、反応速度、生成物、危険度などは、学習用に調整・簡略化された表現を含みます。実際の実験結果を完全に再現するものではありません。</p>
+        <p>試薬の濃度、純度、使用量、温度、圧力、器具、混合順序、実験環境などにより、実際の反応は本シミュレーターと異なる場合があります。</p>
+        <p>本コンテンツに表示される操作や反応を参考に、利用者が実際の薬品、元素、試薬、火気、実験器具などを使用することは想定していません。本シミュレーターを実際の実験手順書、安全手順書、医療・研究・業務上の判断資料として使用しないでください。</p>
+        <p>実際に化学実験を行う場合は、必ず適切な設備を備えた環境で、資格または十分な知識を持つ指導者の監督のもと、各試薬の安全データシートや所属機関の安全基準に従ってください。</p>
+        <p>危険なガス、強酸、強塩基、可燃物、酸化剤、有毒物質などを自己判断で混合しないでください。</p>
+        <p>本コンテンツの利用、または本コンテンツの情報を参考にして行った行為により生じた事故、損害、健康被害、データ損失その他の結果について、制作者は責任を負いません。</p>
+      </div>
+      <div class="body i18n-en">
+        <p>This content is an educational simulation designed to encourage interest in and understanding of chemical reactions.</p>
+        <p>The reactions, colors, flames, smoke, gases, precipitates, temperatures, pH values, pressures, reaction rates, products, and hazard levels shown on screen may include simplified or adjusted representations for educational purposes. They do not perfectly reproduce the results of real-world experiments.</p>
+        <p>Actual reactions may differ depending on reagent concentration, purity, quantity, temperature, pressure, equipment, order of mixing, and laboratory conditions.</p>
+        <p>The operations and reactions shown in this content are not intended to encourage users to handle real chemicals, elements, reagents, flames, or laboratory equipment. Do not use this simulator as a laboratory procedure, safety manual, or basis for medical, research, professional, or operational decisions.</p>
+        <p>Real chemical experiments must only be performed in a properly equipped environment, under the supervision of a qualified or sufficiently knowledgeable instructor, and in accordance with applicable safety data sheets and institutional safety standards.</p>
+        <p>Never mix hazardous gases, strong acids, strong bases, flammable substances, oxidizers, or toxic substances without appropriate professional supervision.</p>
+        <p>The creator assumes no responsibility for accidents, damage, injury, loss of data, or any other consequences resulting from the use of this content or from actions taken based on the information presented in it.</p>
+      </div>
+    </div>
+
+    <!-- recommended environment -->
+    <div style="margin-top:26px" id="env">
+      <div class="envbox">
+        <h3 class="i18n-ja">推奨環境</h3>
+        <h3 class="i18n-en">Recommended Environment</h3>
+        <div class="envlist i18n-ja">
+          <div class="row"><span class="dot">▹</span><span>PCでの利用を推奨します。</span></div>
+          <div class="row"><span class="dot">▹</span><span>タブレットでは横向き画面で利用できます。</span></div>
+          <div class="row"><span class="dot">▹</span><span>タブレットを縦向きにした場合、本編は起動せず案内画面を表示します。</span></div>
+          <div class="row"><span class="dot">▹</span><span>スマートフォンでは本編を起動できません。</span></div>
+          <div class="row"><span class="dot">▹</span><span>スマートフォンおよびタブレット縦向きでは、実験反応のデモを閲覧できます。</span></div>
+        </div>
+        <div class="envlist i18n-en">
+          <div class="row"><span class="dot">▹</span><span>A desktop or laptop computer is recommended.</span></div>
+          <div class="row"><span class="dot">▹</span><span>The full simulator is available on tablets in landscape orientation.</span></div>
+          <div class="row"><span class="dot">▹</span><span>In portrait orientation, tablets display a device guidance screen instead of the full simulator.</span></div>
+          <div class="row"><span class="dot">▹</span><span>The full simulator is not available on smartphones.</span></div>
+          <div class="row"><span class="dot">▹</span><span>Reaction demonstrations remain available on smartphones and tablets in portrait orientation.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer>
+  <div class="wrap">
+    <div class="fgrid">
+      <div class="fbrand">
+        <svg class="flask-mk" viewBox="0 0 32 32" fill="none"><path d="M13 4h6M14 4v8l-7 12a3 3 0 0 0 2.6 4.5h12.8A3 3 0 0 0 25 24l-7-12V4" stroke="#3fd9c8" stroke-width="1.6" stroke-linejoin="round"/><path d="M10.5 20h11" stroke="#5aa2ff" stroke-width="1.6"/></svg>
+        <div class="fname">VIRTUAL CHEMISTRY LAB</div>
+        <p><span class="i18n-ja">化学の不思議を、バーチャルで安全に。発見し、考え、理解を深める教育用シミュレーター。</span><span class="i18n-en">Discover the wonders of chemistry, safely and virtually. An educational simulator to explore, think, and understand.</span></p>
+      </div>
+      <div class="fcol">
+        <h5><span class="i18n-ja">コンテンツ</span><span class="i18n-en">CONTENT</span></h5>
+        <a href="#features"><span class="i18n-ja">特徴</span><span class="i18n-en">Features</span></a>
+        <a href="#gallery"><span class="i18n-ja">反応ギャラリー</span><span class="i18n-en">Reaction Gallery</span></a>
+        <a class="navpage" data-page="how-to" target="_blank" rel="noopener"><span class="i18n-ja">使い方</span><span class="i18n-en">How to Use</span></a>
+        <a class="navpage" data-page="faq" target="_blank" rel="noopener"><span class="i18n-ja">よくある質問</span><span class="i18n-en">FAQ</span></a>
+        <a class="navpage" data-page="reaction-list" target="_blank" rel="noopener"><span class="i18n-ja">反応図鑑</span><span class="i18n-en">Reaction Index</span></a>
+      </div>
+      <div class="fcol">
+        <h5><span class="i18n-ja">安全・環境</span><span class="i18n-en">SAFETY</span></h5>
+        <a href="#safety"><span class="i18n-ja">安全について</span><span class="i18n-en">Safety</span></a>
+        <a href="#disclaimer"><span class="i18n-ja">注意事項・免責事項</span><span class="i18n-en">Notice &amp; Disclaimer</span></a>
+        <a href="#env"><span class="i18n-ja">推奨環境</span><span class="i18n-en">Recommended Environment</span></a>
+      </div>
+    </div>
+    <div class="fbot">
+      <div class="lang-mini footlm" role="group" aria-label="Language">
+        <button class="lm-ja" onclick="setLang('ja')">日本語</button>
+        <button class="lm-en" onclick="setLang('en')">English</button>
+      </div>
+      <div class="cr">© 2025 Virtual Chemistry Lab. All rights reserved.</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  function currentLang(){ return document.documentElement.classList.contains('lang-en')?'en':'ja'; }
+  function updatePageLinks(l){
+    document.querySelectorAll('.navpage').forEach(function(a){
+      a.setAttribute('href', a.dataset.page + '-' + l + '.html');
+    });
+  }
+  function setLang(l){
+    document.documentElement.className='lang-'+l;
+    document.documentElement.lang=l;
+    try{ localStorage.setItem('vclSiteLang',l); }catch(e){}
+    var ja=l==='ja';
+    document.getElementById('card-ja').classList.toggle('active',ja);
+    document.getElementById('card-en').classList.toggle('active',!ja);
+    document.getElementById('card-ja').setAttribute('aria-pressed',ja?'true':'false');
+    document.getElementById('card-en').setAttribute('aria-pressed',ja?'false':'true');
+    updatePageLinks(l);
+    if(window.onSiteLangChange) window.onSiteLangChange(l);
+  }
+  function syncAgree(){
+    var ok=document.getElementById('agchk').checked;
+    var b=document.getElementById('startbtn');
+    b.disabled=!ok; b.setAttribute('aria-disabled', ok?'false':'true');
+  }
+  function enterLab(l){
+    if(!document.getElementById('agchk').checked) return;
+    try{ sessionStorage.setItem(l==='en'?'vclDisclaimerAcceptedEn':'vclDisclaimerAcceptedJa','1'); }catch(e){}
+    window.location.href = l==='en'?'lab-en.html':'lab-ja.html';
+  }
+  // header scroll state
+  (function(){
+    var hdr=document.getElementById('hdr');
+    function onScroll(){ hdr.classList.toggle('scrolled', window.scrollY>30); }
+    window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+  })();
+  // close mobile nav after choosing a link
+  document.getElementById('nav').addEventListener('click',function(e){
+    if(e.target.closest('a')) this.classList.remove('open');
+  });
+  // init
+  (function(){
+    var l=currentLang();
+    setLang(l);
+    document.getElementById('agchk').checked=false;
+    syncAgree();
+  })();
+</script>
+
+<!-- ===== DEMO MODAL (viewing-only, pre-consent safe) ===== -->
+<div class="dmodal" id="demoModal" role="dialog" aria-modal="true" aria-labelledby="dmTitle" hidden>
+  <div class="panel" role="document">
+    <div class="dm-head">
+      <div>
+        <div class="cat" id="dmCat"></div>
+        <h3 id="dmTitle"></h3>
+      </div>
+      <button class="dm-x" id="dmClose" aria-label="Close">✕</button>
+    </div>
+    <div class="dm-body" id="dmBody"></div>
+    <div class="dm-foot" id="dmFoot"></div>
+  </div>
+</div>
+
+<script src="demos.js"></script>
+</body>
+</html>
